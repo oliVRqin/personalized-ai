@@ -17,7 +17,7 @@ server.on('connection', (ws) => {
     ws.on('close', () => {
        console.log("WS closing!")
     })
-  });
+});
 
 app.use(cors());
 app.use(express.json());
