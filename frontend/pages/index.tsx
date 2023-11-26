@@ -13,6 +13,46 @@ export default function Home() {
     video: false // Add video later
   };
 
+  const startWebRTC = async () => {
+    try {
+      peerConnection = new RTCPeerConnection(configuration);
+      console.log("peerConnection", peerConnection)
+      // Request access to user's media devices
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      console.log("stream", stream)
+
+      // Play back the obtained stream (to hear your own input)
+      const audio = new Audio();
+      console.log("audio", audio)
+      audio.srcObject = stream;
+      audio.play();
+      stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
+      peerConnection.onnegotiationneeded = async () => {
+        try {
+          await peerConnection.setLocalDescription(await peerConnection.createOffer());
+          console.log("peerConnection.localDescription", peerConnection.localDescription)
+          socketRef.current?.send(JSON.stringify({ sdp: peerConnection.localDescription }));
+        } catch (error) {
+          console.error("Error creating offer: ", error);
+        }
+      };
+      peerConnection.onicecandidate = ({ candidate }) => {
+        if (candidate) {
+          console.log("candidate", candidate)
+          socketRef.current?.send(JSON.stringify({ ice: candidate }));
+        }
+      };
+      peerConnection.ontrack = ({ streams: [stream] }) => {
+        console.log("stream ontrack", stream)
+        const audio = new Audio();
+        audio.srcObject = stream;
+        audio.play();
+      };
+    } catch (error) {
+      console.error("Error creating peer connection: ", error);
+    }
+  }
+
   useEffect(() => {
     socketRef.current = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT}`);
     console.log("WebSocket created: ", socketRef.current);
@@ -20,18 +60,19 @@ export default function Home() {
     socketRef.current.onopen = () => {
       console.log("WebSocket open");
       if (socketRef.current?.readyState === WebSocket.OPEN) {
-        socketRef.current.send("Hello from onopen");
+        console.log("Hello from onopen");
+        startWebRTC();
       }
     };
   
-    socketRef.current.onmessage = (event) => {
+    /* socketRef.current.onmessage = (event) => {
       console.log("WebSocket message received:", event);
       if (!isPaused && socketRef.current?.readyState === WebSocket.OPEN) {
         const message = event.data;
         console.log("e", message);
         socketRef.current.send("Hello from onmessage");
       }
-    };
+    }; */
   
     socketRef.current.onerror = (error) => {
       console.error("WebSocket Error: ", error);
@@ -45,32 +86,33 @@ export default function Home() {
     };
   }, [isPaused]);
 
-  let mediaRecorder: any;
-        let audioChunks: any = [];
+  let audioChunks: any = [];
 
-  useEffect(() => {
+  /* useEffect(() => {
     navigator.mediaDevices.getUserMedia({ audio: true })
       .then(stream => {
           console.log("stream", stream)
-          mediaRecorder = new MediaRecorder(stream);
-          mediaRecorder.ondataavailable = (event: any) => {
-              audioChunks.push(event.data);
+          mediaRecorderRef.current = new MediaRecorder(stream);
+          console.log("mediaRecorderRef.current", mediaRecorderRef.current)
+          mediaRecorderRef.current.ondataavailable = (event: any) => {
+            console.log("ondataavailable triggered: ", event)
+            audioChunks.push(event.data);
           };
-          mediaRecorder.onstop = () => {
+          mediaRecorderRef.current.onstop = () => {
               const audioBlob = new Blob(audioChunks, { type: 'audio/mp3' });
               const audioBuffer = new FileReader();
               
               audioBuffer.onload = function(event) {
-                  const audioData = event.target?.result as ArrayBuffer;
-                  socketRef.current?.send(audioData);
+                const audioData = event.target?.result as ArrayBuffer;
+                socketRef.current?.send(audioData);
               };
               audioBuffer.readAsArrayBuffer(audioBlob);
           };
           console.log("stream.getTracks()", stream.getTracks())
-          // peerConnection.addTrack(stream.getTracks()[0], stream);
+          peerConnection.addTrack(stream.getTracks()[0], stream);
       });
     console.log("updated audioChunks", audioChunks)
-  }, [isPaused]);
+  }, [isPaused]); */
 
   const handleConversation = async () => {
     if (socketRef.current?.readyState === WebSocket.OPEN) {
