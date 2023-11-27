@@ -5,7 +5,7 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const audioChunksRef = useRef([]);
+  const audioChunksRef = useRef<Array<BlobPart>>([]);
 
   const configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
   let peerConnection: any = null;
@@ -41,9 +41,6 @@ export default function Home() {
       };
       peerConnection.ontrack = ({ streams: [stream] }: any) => {
         console.log("stream ontrack", stream)
-        /* const audio = new Audio();
-        audio.srcObject = stream;
-        audio.play(); */
       };
     } catch (error) {
       console.error("Error creating peer connection: ", error);
@@ -54,7 +51,6 @@ export default function Home() {
     if (!isPaused) {
       socketRef.current = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT}`);
       startWebRTC();
-      // Additional logic for unpausing, if needed
     } else {
       if (socketRef.current?.readyState === WebSocket.OPEN) {
         socketRef.current.close();
@@ -62,9 +58,46 @@ export default function Home() {
       if (peerConnection) {
         peerConnection.close();
       }
-      // Additional logic for pausing, if needed
     }
   }, [isPaused, peerConnection]);
+
+  const sendAudioPrompt = async (audio: any) => {
+    const requestOptions = {
+      method: 'POST',
+      body: audio,
+      headers: {
+          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}}`
+      }
+    };
+    try {
+      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', requestOptions);
+      console.log("sendAudioPrompt response", response)
+      const data = await response.json();
+      console.log("sendAudioPrompt data", data)
+    } catch (error) {
+      console.error('Error uploading file:', error);
+    }
+  }
+
+  const sendAudioPromptToPython = async (audioBlob: any) => {
+    console.log("sendAudioPromptToPython audioBlob", audioBlob)
+    const formData = new FormData();
+    formData.append('file', audioBlob, 'audio-example.mp3')
+    console.log("sendAudioPromptToPython formData", formData)
+    console.log("sendAudioPromptToPython formData get file", formData.get('file'));
+
+    fetch('http://127.0.0.1:5000/upload_audio', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.text())
+    .then(data => {
+        console.log('Success:', data);
+    })
+    .catch((error) => {
+        console.error('Error:', error);
+    });
+  }
 
   useEffect(() => {
     if (isRecording) {
@@ -83,6 +116,9 @@ export default function Home() {
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
         const audio = new Audio(audioUrl);
+        if (audioBlob) {
+          sendAudioPromptToPython(audioBlob)
+        }
         audio.play();
         audioChunksRef.current = [];
       };
