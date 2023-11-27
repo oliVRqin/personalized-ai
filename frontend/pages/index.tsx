@@ -7,7 +7,9 @@ export default function Home() {
   const [isRecording, setIsRecording] = useState(false);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
 
-  const configuration = { iceServers: [{ urls: "stun:stun.l.google.com:19302" }] };
+  const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
+
+  const configuration = { iceServers: [{ urls: ice_server_url as string }] };
   let peerConnection: any = null;
 
   const constraints = {
@@ -61,24 +63,6 @@ export default function Home() {
     }
   }, [isPaused, peerConnection]);
 
-  const sendAudioPrompt = async (audio: any) => {
-    const requestOptions = {
-      method: 'POST',
-      body: audio,
-      headers: {
-          'Authorization': `Bearer ${process.env.NEXT_PUBLIC_OPENAI_KEY}}`
-      }
-    };
-    try {
-      const response = await fetch('https://api.openai.com/v1/audio/transcriptions', requestOptions);
-      console.log("sendAudioPrompt response", response)
-      const data = await response.json();
-      console.log("sendAudioPrompt data", data)
-    } catch (error) {
-      console.error('Error uploading file:', error);
-    }
-  }
-
   const sendAudioPromptToPython = async (audioBlob: any) => {
     console.log("sendAudioPromptToPython audioBlob", audioBlob)
     const formData = new FormData();
@@ -86,7 +70,7 @@ export default function Home() {
     console.log("sendAudioPromptToPython formData", formData)
     console.log("sendAudioPromptToPython formData get file", formData.get('file'));
 
-    fetch('http://127.0.0.1:5000/upload_audio', {
+    fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/chat`, {
         method: 'POST',
         body: formData
     })
@@ -115,11 +99,9 @@ export default function Home() {
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
-        const audio = new Audio(audioUrl);
         if (audioBlob) {
           sendAudioPromptToPython(audioBlob)
         }
-        audio.play();
         audioChunksRef.current = [];
       };
     }
