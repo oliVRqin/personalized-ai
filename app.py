@@ -38,7 +38,7 @@ def chat():
 
         systemPrompt = {
             "role": "system", 
-            "content": "You are an assistant which responds to me in a conversational tone but with concise answers, within 500 characters."
+            "content": "You are an AI therapist who is conversing with a human who just wants to share their experiences and thoughts with someone else. Try to be a good listener and detector of emotion, and potentially find analogies to compare with their experiences."
         }
         userPrompt = {
             "role": "user", 
