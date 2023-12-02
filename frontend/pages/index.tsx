@@ -6,7 +6,6 @@ export default function Home() {
   const [isPaused, setIsPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [responseCounter, setResponseCounter] = useState(0);
-  // const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
@@ -90,25 +89,6 @@ export default function Home() {
     });
   }
 
-  /* useEffect(() => {
-    const playAudio = () => {
-      const audio = audioRef.current;
-      if (audio) {
-        audio.load();
-      }
-    };
-
-    playAudio();
-  }, [responseCounter]);
-
-  const handleLoadedData = () => {
-    const audio = audioRef.current;
-    console.log("audio loaded: ", audio)
-    if (audio) {
-      audio.play().catch(error => console.error('Error playing audio:', error));
-    }
-  };
- */
   useEffect(() => {
     if (isRecording) {
       navigator.mediaDevices.getUserMedia({ audio: true })
@@ -147,6 +127,16 @@ export default function Home() {
           console.log('Audio File:', audioUrl);
           const audio = new Audio(audioUrl);
           audio.play();
+          // Delete the audio file when playback finishes
+          audio.addEventListener('ended', () => {
+            fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/delete_audio`, { method: 'DELETE' })
+              .then(response => {
+                if (response.ok) {
+                  console.log('Audio file deleted successfully.');
+                }
+              })
+              .catch(error => console.error('Error deleting audio file:', error));
+          });
         })
         .catch(error => console.error('Error fetching audio:', error));
       }
@@ -162,9 +152,6 @@ export default function Home() {
       <button className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`} onClick={toggleRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
-      {/* <audio ref={audioRef} onLoadedData={handleLoadedData} controls autoPlay hidden>
-        <source src="output.mp3" type="audio/mp3" />
-      </audio> */}
     </main>
   );
 }

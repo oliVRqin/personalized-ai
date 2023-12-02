@@ -92,6 +92,16 @@ def get_audio():
     print("Sending audio file: ", audio_file_path)
     return send_file(audio_file_path, as_attachment=True, mimetype='audio/mpeg')
 
+@app.route('/delete_audio', methods=['DELETE'])
+def delete_audio():
+    try:
+        os.remove(audio_file_path)
+        return 'File deleted', 200
+    except FileNotFoundError:
+        return 'File not found', 404
+    except Exception as e:
+        return str(e), 500
+
 @app.route('/')
 def index():
     return 'Hello world'
