@@ -70,11 +70,12 @@ export default function Home() {
     console.log("sendAudioPromptToPython formData", formData)
     console.log("sendAudioPromptToPython formData get file", formData.get('file'));
 
+    console.log("formData: ", formData)
     fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/chat`, {
         method: 'POST',
         body: formData
     })
-    .then(response => response.text())
+    .then(response => {response.text()})
     .then(data => {
         console.log('Success:', data);
     })
