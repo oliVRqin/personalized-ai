@@ -67,8 +67,8 @@ export default function Home() {
   const sendAudioPromptToPython = async (audioBlob: any) => {
     console.log("sendAudioPromptToPython audioBlob", audioBlob)
     const formData = new FormData();
-    const file = new File([audioBlob], "audio-example.mp3", { type: "mp3" })
-    formData.append('file', file, 'audio-example.mp3')
+    const file = new File([audioBlob], "audio-example.mp4", { type: "audio/mp4" })
+    formData.append('file', file, 'audio-example.mp4')
     console.log("sendAudioPromptToPython formData", formData)
     console.log("sendAudioPromptToPython formData get file", formData.get('file'));
 
@@ -103,7 +103,7 @@ export default function Home() {
     } else if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'mp3' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
         if (audioBlob) {
