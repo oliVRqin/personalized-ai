@@ -67,7 +67,8 @@ export default function Home() {
   const sendAudioPromptToPython = async (audioBlob: any) => {
     console.log("sendAudioPromptToPython audioBlob", audioBlob)
     const formData = new FormData();
-    formData.append('file', audioBlob, 'audio-example.mp3')
+    const file = new File([audioBlob], "audio-example.mp3", { type: "mp3" })
+    formData.append('file', file, 'audio-example.mp3')
     console.log("sendAudioPromptToPython formData", formData)
     console.log("sendAudioPromptToPython formData get file", formData.get('file'));
 
