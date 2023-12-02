@@ -32,13 +32,15 @@ def chat():
 
     transcript = None
     try:
-        with open(temp_file_path, 'rb') as file:
-            transcript = client.audio.transcriptions.create(
-                model="whisper-1", 
-                file=file
-            )
-            print("transcript", transcript)
-            traceback.print_exc()
+        audio_file = open(temp_file_path, "rb")
+        #with open(temp_file_path, 'rb') as file:
+        print("audio file", audio_file)
+        transcript = client.audio.transcriptions.create(
+            model="whisper-1", 
+            file=audio_file
+        )
+        print("transcript", transcript)
+        traceback.print_exc()
         print("Received a transcript:", transcript.text)
 
         systemPrompt = {
