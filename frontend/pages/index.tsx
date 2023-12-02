@@ -117,7 +117,7 @@ export default function Home() {
       {/* <button onClick={() => setIsPaused(!isPaused)}>
         {isPaused ? "Resume Connection" : "Pause Connection"}
       </button> */}
-      <button className="bg-green-600 px-5 py-3 rounded-lg text-white" onClick={toggleRecording}>
+      <button className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`} onClick={toggleRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
     </main>
