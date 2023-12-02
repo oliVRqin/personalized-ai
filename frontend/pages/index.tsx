@@ -5,8 +5,8 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  const [responseCounter, setResponseCounter] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null);
+  /* const [responseCounter, setResponseCounter] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null); */
   const audioChunksRef = useRef<Array<BlobPart>>([]);
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
@@ -78,7 +78,7 @@ export default function Home() {
         body: formData
     })
     .then(response => {
-      setResponseCounter(responseCounter + 1)
+      /* setResponseCounter(responseCounter + 1) */
       console.log(response.text())
     })
     .then(data => {
@@ -89,7 +89,7 @@ export default function Home() {
     });
   }
 
-  useEffect(() => {
+  /* useEffect(() => {
     const playAudio = () => {
       const audio = audioRef.current;
       if (audio) {
@@ -107,7 +107,7 @@ export default function Home() {
       audio.play().catch(error => console.error('Error playing audio:', error));
     }
   };
-
+ */
   useEffect(() => {
     if (isRecording) {
       navigator.mediaDevices.getUserMedia({ audio: true })
@@ -145,9 +145,9 @@ export default function Home() {
       <button className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`} onClick={toggleRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
-      <audio ref={audioRef} onLoadedData={handleLoadedData} controls autoPlay hidden>
+      {/* <audio ref={audioRef} onLoadedData={handleLoadedData} controls autoPlay hidden>
         <source src="output.mp3" type="audio/mp3" />
-      </audio>
+      </audio> */}
     </main>
   );
 }
