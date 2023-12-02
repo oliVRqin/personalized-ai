@@ -4,3 +4,5 @@ Werkzeug==3.0.1
 flask_cors
 python-dotenv
 openai
+ffmpeg
+pydub

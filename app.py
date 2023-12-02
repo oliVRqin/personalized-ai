@@ -3,6 +3,9 @@ from flask_cors import CORS
 from openai import OpenAI
 import os
 import tempfile
+from pydub import AudioSegment
+from pydub.playback import play
+import io
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -63,7 +66,11 @@ def chat():
             input=response.choices[0].message.content
         )  
 
-        audio_response.stream_to_file("./frontend/public/output.mp3")
+        print("Received an audio response: ", audio_response)
+
+        bytes = io.BytesIO(audio_response.content)
+
+        play(AudioSegment.from_file(bytes, format="mp3"))
 
     except Exception as e:
         print("An error occurred:", e)
