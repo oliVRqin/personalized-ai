@@ -102,6 +102,7 @@ export default function Home() {
 
   const handleLoadedData = () => {
     const audio = audioRef.current;
+    console.log("audio loaded: ", audio)
     if (audio) {
       audio.play().catch(error => console.error('Error playing audio:', error));
     }
