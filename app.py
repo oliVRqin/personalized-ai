@@ -1,11 +1,9 @@
-from flask import Flask, request
+from flask import Flask, request, send_file
 from flask_cors import CORS
 from openai import OpenAI
 import os
+import traceback
 import tempfile
-from pydub import AudioSegment
-from pydub.playback import play
-import io
 from dotenv import load_dotenv
 load_dotenv()
 
@@ -15,8 +13,8 @@ client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
 CORS(app)
-#CORS(app, resources={r"/chat": {"origins": "https://personalized-ai.vercel.app"}})
-#CORS(app, resources={r"/*": {"origins": "https://personalized-ai.vercel.app"}})
+
+audio_file_path = 'output.mp3'
 
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -68,12 +66,12 @@ def chat():
 
         print("Received an audio response: ", audio_response)
 
-        bytes = io.BytesIO(audio_response.content)
-
-        play(AudioSegment.from_file(bytes, format="mp3"))
+        with open(audio_file_path, 'wb') as audio_file:
+            audio_file.write(audio_response.content)      
 
     except Exception as e:
         print("An error occurred:", e)
+        traceback.print_exc()
         return 'Failed to transcribe audio', 500
     finally:
         # Clean up the temporary file
@@ -81,9 +79,18 @@ def chat():
         os.rmdir(temp_dir)
 
     if transcript:
-        return 'File successfully uploaded', 200
+        return 'Audio generated successfully', 200
     else:
         return 'Failed to transcribe audio', 500
+    
+@app.route('/get_audio', methods=['GET'])
+def get_audio():
+    print("audio path", audio_file_path)
+    if not os.path.exists(audio_file_path):
+        return 'Audio not found', 404
+
+    print("Sending audio file: ", audio_file_path)
+    return send_file(audio_file_path, as_attachment=True, mimetype='audio/mpeg')
 
 @app.route('/')
 def index():

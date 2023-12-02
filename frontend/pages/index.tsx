@@ -5,8 +5,8 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
-  /* const [responseCounter, setResponseCounter] = useState(0);
-  const audioRef = useRef<HTMLAudioElement | null>(null); */
+  const [responseCounter, setResponseCounter] = useState(0);
+  // const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
@@ -78,10 +78,11 @@ export default function Home() {
         body: formData
     })
     .then(response => {
-      /* setResponseCounter(responseCounter + 1) */
+      
       console.log(response.text())
     })
     .then(data => {
+      setResponseCounter(responseCounter + 1)
         console.log('Success:', data);
     })
     .catch((error) => {
@@ -135,6 +136,22 @@ export default function Home() {
   const toggleRecording = () => {
     setIsRecording(!isRecording);
   };
+
+  useEffect(() => {
+    if (responseCounter > 0) {
+      // Fetch and play the latest audio file
+      fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/get_audio`)
+        .then(response => response.blob())
+        .then(blob => {
+          const audioUrl = URL.createObjectURL(blob);
+          console.log('Audio File:', audioUrl);
+          const audio = new Audio(audioUrl);
+          audio.play();
+        })
+        .catch(error => console.error('Error fetching audio:', error));
+      }
+  }, [responseCounter]);
+  
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-between p-24`}>
