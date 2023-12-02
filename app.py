@@ -1,14 +1,18 @@
 from flask import Flask, request
 from flask_cors import CORS
-from secrets_1 import openaikey
+# from secrets_1 import openaikey
 from pydub import AudioSegment
 from pydub.playback import play
 from openai import OpenAI
 import os
 import tempfile
 import io
+from dotenv import load_dotenv
+load_dotenv()
 
-client = OpenAI(api_key=openaikey)
+KEY = os.getenv('OPENAI_API_KEY')
+
+client = OpenAI(api_key=KEY)
 
 app = Flask(__name__)
 # CORS(app)
