@@ -98,7 +98,7 @@ export default function Home() {
           mediaRecorderRef.current.ondataavailable = (event) => {
             audioChunksRef.current.push(event.data);
           };
-          mediaRecorderRef.current.start();
+          mediaRecorderRef.current.start(1000);
         });
     } else if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
