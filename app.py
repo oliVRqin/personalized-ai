@@ -14,8 +14,8 @@ OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
 client = OpenAI(api_key=OPENAI_API_KEY)
 
 app = Flask(__name__)
-# CORS(app)
-CORS(app, resources={r"/chat": {"origins": "https://personalized-ai.vercel.app"}})
+CORS(app)
+#CORS(app, resources={r"/chat": {"origins": "https://personalized-ai.vercel.app"}})
 #CORS(app, resources={r"/*": {"origins": "https://personalized-ai.vercel.app"}})
 
 @app.route('/chat', methods=['POST'])
@@ -66,11 +66,13 @@ def chat():
             input=response.choices[0].message.content
         )  
 
-        print("Received an audio response: ", audio_response)
+        audio_response.stream_to_file("./frontend/public/output.mp3")
 
-        bytes = io.BytesIO(audio_response.content)
+        #print("Received an audio response: ", audio_response)
 
-        play(AudioSegment.from_file(bytes, format="mp3"))
+        #bytes = io.BytesIO(audio_response.content)
+
+        #play(AudioSegment.from_file(bytes, format="mp3"))
 
     except Exception as e:
         print("An error occurred:", e)

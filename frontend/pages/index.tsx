@@ -5,6 +5,8 @@ export default function Home() {
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const [isPaused, setIsPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
+  const [responseCounter, setResponseCounter] = useState(0);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
@@ -75,7 +77,10 @@ export default function Home() {
         method: 'POST',
         body: formData
     })
-    .then(response => {response.text()})
+    .then(response => {
+      setResponseCounter(responseCounter + 1)
+      console.log(response.text())
+    })
     .then(data => {
         console.log('Success:', data);
     })
@@ -83,6 +88,24 @@ export default function Home() {
         console.error('Error:', error);
     });
   }
+
+  useEffect(() => {
+    const playAudio = () => {
+      const audio = audioRef.current;
+      if (audio) {
+        audio.load();
+      }
+    };
+
+    playAudio();
+  }, [responseCounter]);
+
+  const handleLoadedData = () => {
+    const audio = audioRef.current;
+    if (audio) {
+      audio.play().catch(error => console.error('Error playing audio:', error));
+    }
+  };
 
   useEffect(() => {
     if (isRecording) {
@@ -121,6 +144,9 @@ export default function Home() {
       <button className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`} onClick={toggleRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
+      <audio ref={audioRef} onLoadedData={handleLoadedData} controls autoPlay hidden>
+        <source src="output.mp3" type="audio/mp3" />
+      </audio>
     </main>
   );
 }
