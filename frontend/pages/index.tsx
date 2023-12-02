@@ -114,10 +114,10 @@ export default function Home() {
   return (
     <main className={`flex min-h-screen flex-col items-center justify-between p-24`}>
       <div>Personalized AI</div>
-      <button onClick={() => setIsPaused(!isPaused)}>
+      {/* <button onClick={() => setIsPaused(!isPaused)}>
         {isPaused ? "Resume Connection" : "Pause Connection"}
-      </button>
-      <button onClick={toggleRecording}>
+      </button> */}
+      <button className="bg-green-600 px-5 py-3 rounded-lg text-white" onClick={toggleRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
     </main>
