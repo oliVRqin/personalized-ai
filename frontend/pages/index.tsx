@@ -95,27 +95,23 @@ export default function Home() {
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           mediaRecorderRef.current = new MediaRecorder(stream);
-          mediaRecorderRef.current.start(1000);
           mediaRecorderRef.current.ondataavailable = (event) => {
             audioChunksRef.current.push(event.data);
           };
+          mediaRecorderRef.current.start(1000);
         });
-    } else {
-      if (mediaRecorderRef.current) {
-        // mediaRecorderRef.current.requestData();
-        mediaRecorderRef.current.stop();
-        mediaRecorderRef.current.onstop = () => {
-          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
-          const audioUrl = URL.createObjectURL(audioBlob);
-          console.log('Audio File:', audioUrl);
-          if (audioBlob) {
-            sendAudioPromptToPython(audioBlob);
-          }
-          audioChunksRef.current = [];
-        };
-      }
+    } else if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        console.log('Audio File:', audioUrl);
+        if (audioBlob) {
+          sendAudioPromptToPython(audioBlob)
+        }
+        audioChunksRef.current = [];
+      };
     }
-
   }, [isRecording]);
 
   const toggleRecording = () => {
