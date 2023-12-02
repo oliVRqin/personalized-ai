@@ -102,7 +102,7 @@ export default function Home() {
     } else if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp3' });
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'mp3' });
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
         if (audioBlob) {

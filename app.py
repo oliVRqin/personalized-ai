@@ -37,6 +37,8 @@ def chat():
                 model="whisper-1", 
                 file=file
             )
+            print("transcript", transcript)
+            traceback.print_exc()
         print("Received a transcript:", transcript.text)
 
         systemPrompt = {
