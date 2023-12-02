@@ -49,7 +49,7 @@ export default function Home() {
     }
   }
 
-  useEffect(() => {
+  /* useEffect(() => {
     if (!isPaused) {
       socketRef.current = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT}`);
       startWebRTC();
@@ -61,7 +61,7 @@ export default function Home() {
         peerConnection.close();
       }
     }
-  }, [isPaused, peerConnection]);
+  }, [isPaused, peerConnection]); */
 
   const sendAudioPromptToPython = async (audioBlob: any) => {
     console.log("sendAudioPromptToPython audioBlob", audioBlob)

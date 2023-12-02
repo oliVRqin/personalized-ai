@@ -11,6 +11,7 @@ import io
 client = OpenAI(api_key=openaikey)
 
 app = Flask(__name__)
+# CORS(app)
 CORS(app, resources={r"/*": {"origins": "https://personalized-ai.vercel.app"}})
 
 @app.route('/chat', methods=['POST'])

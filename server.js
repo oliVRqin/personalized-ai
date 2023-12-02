@@ -7,7 +7,13 @@ const app = express();
 
 dotenv.config();
 
-const server = new WebSocket.Server({ port: process.env.WS_PORT });
+// Has a websocket port issue when deployed to GCP -> 
+// TypeError: One and only one of the "port", "server", or "noServer" options must be specified
+// at new WebSocketServer
+/* const server = new WebSocket.Server({ port: process.env.WS_PORT });
+
+console.log("WS server listening on port " + process.env.WS_PORT);
+console.log("WS server: " + server);
 
 server.on('connection', (ws) => {
     ws.on('message', (message) => {
@@ -17,7 +23,7 @@ server.on('connection', (ws) => {
     ws.on('close', () => {
        console.log("WS closing!")
     })
-});
+}); */
 
 app.use(cors());
 app.use(express.json());
