@@ -6,6 +6,7 @@ export default function Home() {
   const [isPaused, setIsPaused] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [responseCounter, setResponseCounter] = useState(0);
+  const [isLoadingResponse, setIsLoadingResponse] = useState(false);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
@@ -72,18 +73,19 @@ export default function Home() {
     console.log("sendAudioPromptToPython formData", formData)
     console.log("sendAudioPromptToPython formData get file", formData.get('file'));
 
+    setIsLoadingResponse(true)
     console.log("formData: ", formData)
     fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/chat`, {
         method: 'POST',
         body: formData
     })
     .then(response => {
-      
       console.log(response.text())
     })
     .then(data => {
+      setIsLoadingResponse(false)
       setResponseCounter(responseCounter + 1)
-        console.log('Success:', data);
+      console.log('Success:', data);
     })
     .catch((error) => {
         console.error('Error:', error);
@@ -92,17 +94,21 @@ export default function Home() {
 
   useEffect(() => {
     if (isRecording) {
+      console.log("mediaRecorder isRecording start")
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           mediaRecorderRef.current = new MediaRecorder(stream);
           mediaRecorderRef.current.ondataavailable = (event) => {
+            console.log("mediaRecorder on dataavailable")
             audioChunksRef.current.push(event.data);
           };
           mediaRecorderRef.current.start(1000);
         });
     } else if (mediaRecorderRef.current) {
+      console.log("mediaRecorder isRecording stop")
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.onstop = () => {
+        console.log("mediaRecorder on stopped")
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
@@ -146,10 +152,11 @@ export default function Home() {
 
   return (
     <main className={`flex min-h-screen flex-col items-center justify-between p-24`}>
-      <div>Personalized AI</div>
+      <h1 className='text-2xl font-semibold'>Personalized AI</h1>
       {/* <button onClick={() => setIsPaused(!isPaused)}>
         {isPaused ? "Resume Connection" : "Pause Connection"}
       </button> */}
+      {isLoadingResponse && <p className="text-lg">Generating response...</p>}
       <button className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`} onClick={toggleRecording}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
