@@ -8,29 +8,32 @@ export default function Home() {
   const [responseCounter, setResponseCounter] = useState(0);
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
-  const [transcriptText, setTranscriptText] = useState<string>('');
-  const [responseText, setResponseText] = useState<string>('');
   const [messages, setMessages] = useState<any[]>([]);
 
-  const renderMessage = (message: any, index: any) => {
-    const messageClass = message.author === 'speaker' 
-      ? 'bg-blue-500 text-white rounded-lg rounded-br-none' 
-      : 'bg-gray-300 text-black rounded-lg rounded-bl-none';
+  const messagesEndRef = useRef<null | HTMLDivElement>(null);
 
-    const containerClass = message.author === 'speaker' 
-      ? 'flex justify-end' 
-      : 'flex justify-start';
+  const scrollToBottom = () => {
+    const current = messagesEndRef.current;
+    if (current) {
+      current.scrollTop = current.scrollHeight;
+    }
+  };
+
+  const renderMessage = (message: any, index: any) => {
+    const messageBoxClass = message.author === 'speaker' 
+      ? 'bg-blue-500 text-white rounded-lg rounded-br-none float-right clear-both' 
+      : 'bg-gray-300 text-black rounded-lg rounded-bl-none float-left clear-both';
 
     return (
-      <div key={index} className={`max-w-xs w-full px-4 py-2 my-1 ${containerClass}`}>
-        <div className={`w-auto inline-block px-4 ${messageClass}`}>
-          {message.text}
-        </div>
+      <div key={index} className={`max-w-xs w-auto px-4 py-2 my-1 ${messageBoxClass}`}>
+        {message.text}
       </div>
     );
   };
 
-
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
 
@@ -95,6 +98,10 @@ export default function Home() {
     return formData;
   };
 
+  const addMessage = (text: string, author: string) => {
+    setMessages(prevMessages => [...prevMessages, { text, author }]);
+  };
+
   const printTranscript = async (audioBlob: any) => {
     const formData = createAudioFormData(audioBlob, "audio-example-printTranscript.mp4");
     try {
@@ -106,17 +113,11 @@ export default function Home() {
           throw new Error('Network response was not ok');
       }
       const data = await response.text();
-      setTranscriptText(data); 
-      messages.push({ text: data, author: 'speaker' })
-      //setMessages([...messages, { text: data, author: 'other' }])
+      addMessage(data, 'speaker');
     } catch (error) {
       console.error('Error:', error);
     }
   };
-
-
-  console.log("transcriptText: ", transcriptText)
-  console.log("responseText: ", responseText)
 
   const sendAudioPromptToPython = async (audioBlob: any) => {
     const formData = createAudioFormData(audioBlob, "audio-example.mp4");
@@ -131,9 +132,7 @@ export default function Home() {
       const data = await response.text();
       setIsLoadingResponse(false);
       setResponseCounter(responseCounter + 1);
-      setResponseText(data)
-      messages.push({ text: data, author: 'other' })
-      //setMessages([...messages, { text: data, author: 'speaker' }])
+      addMessage(data, 'other');
     } catch (error) {
       console.error('Error:', error);
       setIsLoadingResponse(false);
@@ -142,21 +141,17 @@ export default function Home() {
 
   useEffect(() => {
     if (isRecording) {
-      console.log("mediaRecorder isRecording start")
       navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           mediaRecorderRef.current = new MediaRecorder(stream);
           mediaRecorderRef.current.ondataavailable = (event) => {
-            console.log("mediaRecorder on dataavailable")
             audioChunksRef.current.push(event.data);
           };
           mediaRecorderRef.current.start(1000);
         });
     } else if (mediaRecorderRef.current) {
-      console.log("mediaRecorder isRecording stop")
       mediaRecorderRef.current.stop();
       mediaRecorderRef.current.onstop = () => {
-        console.log("mediaRecorder on stopped")
         const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
@@ -200,18 +195,28 @@ export default function Home() {
   
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-between p-24`}>
+    <main className={`flex min-h-screen flex-col items-center justify-between p-24 bg-gray-100`}>
       <h1 className='text-2xl font-semibold'>Personalized AI</h1>
       {/* <button onClick={() => setIsPaused(!isPaused)}>
         {isPaused ? "Resume Connection" : "Pause Connection"}
       </button> */}
-      <div className="flex flex-col items-center justify-center h-1/2 w-1/2">
-          <div className="w-1/2 h-1/2 overflow-y-auto p-4 bg-white shadow rounded">
-              {messages.map((message, index) => renderMessage(message, index))}
-          </div>
+      <div className="flex flex-col items-center justify-center w-full md:w-1/2">
+        <div ref={messagesEndRef} className={`w-full md:h-96 overflow-y-auto p-4 bg-white shadow rounded ${messages.length === 0 && `justify-center items-center text-center md:h-auto p-8`}`}>
+          {
+            messages.length === 0 
+              ?
+                <>
+                  <p className='font-bold text-lg pb-3'>Chat with your AI therapist!</p>
+                  <p>1. Click on &quot;Start Recording&quot; to talk with the AI.</p>
+                  <p>2. When you&apos;re done, click &quot;Stop Recording&quot; to wait for the AI&apos;s response.</p>
+                </>
+              :
+                messages.map((message, index) => renderMessage(message, index))
+          }
         </div>
+      </div>
       {isLoadingResponse && <p className="text-lg">Generating response...</p>}
-      <button onClick={toggleRecording} className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`}>
+      <button onClick={toggleRecording} className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white mt-4`}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
     </main>
