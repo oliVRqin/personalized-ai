@@ -8,6 +8,7 @@ export default function Home() {
   const [responseCounter, setResponseCounter] = useState(0);
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
+  const [transcriptText, setTranscriptText] = useState<string>('');
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
 
@@ -65,32 +66,51 @@ export default function Home() {
     }
   }, [isPaused, peerConnection]); */
 
-  const sendAudioPromptToPython = async (audioBlob: any) => {
-    console.log("sendAudioPromptToPython audioBlob", audioBlob)
+  // Helper function to create FormData
+  const createAudioFormData = (audioBlob: any, fileName: any) => {
     const formData = new FormData();
-    const file = new File([audioBlob], "audio-example.mp4", { type: "audio/mp4" })
-    formData.append('file', file, 'audio-example.mp4')
-    console.log("sendAudioPromptToPython formData", formData)
-    console.log("sendAudioPromptToPython formData get file", formData.get('file'));
+    formData.append('file', new File([audioBlob], fileName, { type: "audio/mp4" }));
+    return formData;
+  };
 
-    setIsLoadingResponse(true)
-    console.log("formData: ", formData)
-    fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/chat`, {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => {
-      console.log(response.text())
-    })
-    .then(data => {
-      setIsLoadingResponse(false)
-      setResponseCounter(responseCounter + 1)
-      console.log('Success:', data);
-    })
-    .catch((error) => {
-        console.error('Error:', error);
-    });
-  }
+  const printTranscript = async (audioBlob: any) => {
+    const formData = createAudioFormData(audioBlob, "audio-example-printTranscript.mp4");
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/print-transcript`, {
+          method: 'POST',
+          body: formData
+      });
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      const data = await response.text();
+      setTranscriptText(data); 
+    } catch (error) {
+      console.error('Error:', error);
+    }
+  };
+
+
+  console.log("transcriptText: ", transcriptText)
+
+  const sendAudioPromptToPython = async (audioBlob: any) => {
+    const formData = createAudioFormData(audioBlob, "audio-example.mp4");
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/chat`, {
+          method: 'POST',
+          body: formData
+      });
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      const data = await response.text();
+      setIsLoadingResponse(false);
+      setResponseCounter(responseCounter + 1);
+    } catch (error) {
+      console.error('Error:', error);
+      setIsLoadingResponse(false);
+    }
+  };
 
   useEffect(() => {
     if (isRecording) {
@@ -113,6 +133,7 @@ export default function Home() {
         const audioUrl = URL.createObjectURL(audioBlob);
         console.log('Audio File:', audioUrl);
         if (audioBlob) {
+          printTranscript(audioBlob)
           sendAudioPromptToPython(audioBlob)
         }
         audioChunksRef.current = [];
@@ -157,7 +178,7 @@ export default function Home() {
         {isPaused ? "Resume Connection" : "Pause Connection"}
       </button> */}
       {isLoadingResponse && <p className="text-lg">Generating response...</p>}
-      <button className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`} onClick={toggleRecording}>
+      <button onClick={toggleRecording} className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`}>
         {isRecording ? "Stop Recording" : "Start Recording"}
       </button>
     </main>

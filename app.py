@@ -16,6 +16,43 @@ CORS(app)
 
 audio_file_path = 'output.mp4'
 
+def transcribe_audio(file_storage):
+    temp_dir = tempfile.mkdtemp()
+    temp_file_path = os.path.join(temp_dir, file_storage.filename)
+    file_storage.save(temp_file_path)
+
+    transcript = None
+    try:
+        with open(temp_file_path, "rb") as audio_file:
+            transcript = client.audio.transcriptions.create(
+                model="whisper-1", 
+                file=audio_file
+            )
+    except Exception as e:
+        print("An error occurred:", e)
+        traceback.print_exc()
+    finally:
+        # Clean up the temporary file
+        os.remove(temp_file_path)
+        os.rmdir(temp_dir)
+    return transcript.text if transcript else None
+
+
+@app.route('/print-transcript', methods=['POST'])
+def printTranscript():
+    if 'file' not in request.files:
+        return 'No file part', 400
+
+    file_storage = request.files['file']
+    if file_storage.filename == '':
+        return 'No selected file', 400
+
+    transcript_text = transcribe_audio(file_storage)
+    if transcript_text:
+        return transcript_text
+    else:
+        return 'Failed to transcribe audio', 500
+    
 @app.route('/chat', methods=['POST'])
 def chat():
     if 'file' not in request.files:
@@ -24,32 +61,22 @@ def chat():
     file_storage = request.files['file']
     if file_storage.filename == '':
         return 'No selected file', 400
+    
+    transcript_text = transcribe_audio(file_storage)
 
     # Create a temporary file
     temp_dir = tempfile.mkdtemp()
     temp_file_path = os.path.join(temp_dir, file_storage.filename)
     file_storage.save(temp_file_path)
 
-    transcript = None
     try:
-        audio_file = open(temp_file_path, "rb")
-        #with open(temp_file_path, 'rb') as file:
-        print("audio file", audio_file)
-        transcript = client.audio.transcriptions.create(
-            model="whisper-1", 
-            file=audio_file
-        )
-        print("transcript", transcript)
-        traceback.print_exc()
-        print("Received a transcript:", transcript.text)
-
         systemPrompt = {
             "role": "system", 
             "content": "You are an AI therapist who is conversing with a human who just wants to share their experiences and thoughts with someone else. Try to be a good listener and detector of emotion, and potentially find analogies to compare with their experiences."
         }
         userPrompt = {
             "role": "user", 
-            "content": transcript.text
+            "content": transcript_text
         };
 
         response = client.chat.completions.create(
@@ -81,11 +108,8 @@ def chat():
         # Clean up the temporary file
         os.remove(temp_file_path)
         os.rmdir(temp_dir)
+    return 'Audio generated successfully', 200
 
-    if transcript:
-        return 'Audio generated successfully', 200
-    else:
-        return 'Failed to transcribe audio', 500
     
 @app.route('/get_audio', methods=['GET'])
 def get_audio():
