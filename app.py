@@ -108,7 +108,7 @@ def chat():
         # Clean up the temporary file
         os.remove(temp_file_path)
         os.rmdir(temp_dir)
-    return 'Audio generated successfully', 200
+    return response.choices[0].message.content
 
     
 @app.route('/get_audio', methods=['GET'])

@@ -9,6 +9,28 @@ export default function Home() {
   const [isLoadingResponse, setIsLoadingResponse] = useState(false);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
   const [transcriptText, setTranscriptText] = useState<string>('');
+  const [responseText, setResponseText] = useState<string>('');
+  const [messages, setMessages] = useState<any[]>([]);
+
+  const renderMessage = (message: any, index: any) => {
+    const messageClass = message.author === 'speaker' 
+      ? 'bg-blue-500 text-white rounded-lg rounded-br-none' 
+      : 'bg-gray-300 text-black rounded-lg rounded-bl-none';
+
+    const containerClass = message.author === 'speaker' 
+      ? 'flex justify-end' 
+      : 'flex justify-start';
+
+    return (
+      <div key={index} className={`max-w-xs w-full px-4 py-2 my-1 ${containerClass}`}>
+        <div className={`w-auto inline-block px-4 ${messageClass}`}>
+          {message.text}
+        </div>
+      </div>
+    );
+  };
+
+
 
   const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
 
@@ -85,6 +107,8 @@ export default function Home() {
       }
       const data = await response.text();
       setTranscriptText(data); 
+      messages.push({ text: data, author: 'speaker' })
+      //setMessages([...messages, { text: data, author: 'other' }])
     } catch (error) {
       console.error('Error:', error);
     }
@@ -92,6 +116,7 @@ export default function Home() {
 
 
   console.log("transcriptText: ", transcriptText)
+  console.log("responseText: ", responseText)
 
   const sendAudioPromptToPython = async (audioBlob: any) => {
     const formData = createAudioFormData(audioBlob, "audio-example.mp4");
@@ -106,6 +131,9 @@ export default function Home() {
       const data = await response.text();
       setIsLoadingResponse(false);
       setResponseCounter(responseCounter + 1);
+      setResponseText(data)
+      messages.push({ text: data, author: 'other' })
+      //setMessages([...messages, { text: data, author: 'speaker' }])
     } catch (error) {
       console.error('Error:', error);
       setIsLoadingResponse(false);
@@ -177,6 +205,11 @@ export default function Home() {
       {/* <button onClick={() => setIsPaused(!isPaused)}>
         {isPaused ? "Resume Connection" : "Pause Connection"}
       </button> */}
+      <div className="flex flex-col items-center justify-center h-1/2 w-1/2">
+          <div className="w-1/2 h-1/2 overflow-y-auto p-4 bg-white shadow rounded">
+              {messages.map((message, index) => renderMessage(message, index))}
+          </div>
+        </div>
       {isLoadingResponse && <p className="text-lg">Generating response...</p>}
       <button onClick={toggleRecording} className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white`}>
         {isRecording ? "Stop Recording" : "Start Recording"}
