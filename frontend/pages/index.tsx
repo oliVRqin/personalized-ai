@@ -1,16 +1,67 @@
 import { useEffect, useState, useRef } from 'react';
 
 export default function Home() {
-  const socketRef = useRef<WebSocket | null>(null)
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const [isPaused, setIsPaused] = useState(false);
-  const [isRecording, setIsRecording] = useState(false);
-  const [responseCounter, setResponseCounter] = useState(0);
-  const [isLoadingResponse, setIsLoadingResponse] = useState(false);
+  const [isRecording, setIsRecording] = useState<boolean>(false);
+  // const [isVideo, setIsVideo] = useState<boolean>(false);
+  const [responseCounter, setResponseCounter] = useState<number>(0);
+  const [isLoadingResponse, setIsLoadingResponse] = useState<boolean>(false);
   const audioChunksRef = useRef<Array<BlobPart>>([]);
   const [messages, setMessages] = useState<any[]>([]);
 
   const messagesEndRef = useRef<null | HTMLDivElement>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+
+  /* useEffect(() => {
+    if (isVideo) {
+      // Request both audio and video
+      navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+        .then(stream => {
+          mediaRecorderRef.current = new MediaRecorder(stream);
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
+        });
+    } else if (mediaRecorderRef.current) {
+      mediaRecorderRef.current.stop();
+      mediaRecorderRef.current.onstop = () => {
+        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
+        const audioUrl = URL.createObjectURL(audioBlob);
+        console.log('Audio File:', audioUrl);
+        if (audioBlob) {
+          printTranscript(audioBlob)
+          sendAudioPromptToPython(audioBlob)
+        }
+        audioChunksRef.current = [];
+      };
+    }
+  }, [isVideo]); */
+
+  const captureSnapshot = () => {
+    return new Promise((resolve, reject) => {
+      if (videoRef.current && videoRef.current.srcObject) {
+        const canvas = document.createElement('canvas');
+        canvas.width = videoRef.current.videoWidth;
+        canvas.height = videoRef.current.videoHeight;
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
+  
+        try {
+          const dataURL = canvas.toDataURL('image/jpeg');
+          resolve(dataURL); 
+  
+          // Turn off the webcam for now (could be changed)
+          const stream = videoRef.current.srcObject as any;
+          const tracks = stream.getTracks();
+          tracks.forEach((track: any) => track.stop());
+        } catch (error) {
+          reject(error);
+        }
+      } else {
+        reject(new Error("Video element not found"));
+      }
+    });
+  };
 
   const scrollToBottom = () => {
     const current = messagesEndRef.current;
@@ -35,61 +86,7 @@ export default function Home() {
     scrollToBottom();
   }, [messages]);
 
-  const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
-
-  const configuration = { iceServers: [{ urls: ice_server_url as string }] };
-  let peerConnection: any = null;
-
-  const constraints = {
-    audio: true,
-    video: false
-  };
-
-  const startWebRTC = async () => {
-    try {
-      peerConnection = new RTCPeerConnection(configuration);
-      console.log("peerConnection", peerConnection)
-      // Request access to user's media devices
-      const stream = await navigator.mediaDevices.getUserMedia(constraints);
-      console.log("stream", stream)
-
-      stream.getTracks().forEach(track => peerConnection.addTrack(track, stream));
-      peerConnection.onnegotiationneeded = async () => {
-        try {
-          await peerConnection.setLocalDescription(await peerConnection.createOffer());
-          console.log("peerConnection.localDescription", peerConnection.localDescription)
-          socketRef.current?.send(JSON.stringify({ sdp: peerConnection.localDescription }));
-        } catch (error) {
-          console.error("Error creating offer: ", error);
-        }
-      };
-      peerConnection.onicecandidate = ({ candidate }: any) => {
-        if (candidate) {
-          console.log("candidate", candidate)
-          socketRef.current?.send(JSON.stringify({ ice: candidate }));
-        }
-      };
-      peerConnection.ontrack = ({ streams: [stream] }: any) => {
-        console.log("stream ontrack", stream)
-      };
-    } catch (error) {
-      console.error("Error creating peer connection: ", error);
-    }
-  }
-
-  /* useEffect(() => {
-    if (!isPaused) {
-      socketRef.current = new WebSocket(`${process.env.NEXT_PUBLIC_WEBSOCKET_ENDPOINT}`);
-      startWebRTC();
-    } else {
-      if (socketRef.current?.readyState === WebSocket.OPEN) {
-        socketRef.current.close();
-      }
-      if (peerConnection) {
-        peerConnection.close();
-      }
-    }
-  }, [isPaused, peerConnection]); */
+  // const ice_server_url = process.env.NEXT_PUBLIC_ICE_SERVER_URL
 
   // Helper function to create FormData
   const createAudioFormData = (audioBlob: any, fileName: any) => {
@@ -119,6 +116,27 @@ export default function Home() {
     }
   };
 
+  const sendImagePromptToPython = async (imageURL: string) => {
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/analyze-image`, {
+          method: 'POST',
+          body: imageURL
+      });
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      const data = await response.text();
+      // works, GPT responds back
+      console.log("data from image prompt: ", data)
+      /* setIsLoadingResponse(false);
+      setResponseCounter(responseCounter + 1);
+      addMessage(data, 'other'); */
+    } catch (error) {
+      console.error('Error:', error);
+      //setIsLoadingResponse(false);
+    }
+  }
+
   const sendAudioPromptToPython = async (audioBlob: any) => {
     const formData = createAudioFormData(audioBlob, "audio-example.mp4");
     try {
@@ -141,25 +159,39 @@ export default function Home() {
 
   useEffect(() => {
     if (isRecording) {
-      navigator.mediaDevices.getUserMedia({ audio: true })
+      navigator.mediaDevices.getUserMedia({ audio: true, video: true })
         .then(stream => {
           mediaRecorderRef.current = new MediaRecorder(stream);
           mediaRecorderRef.current.ondataavailable = (event) => {
             audioChunksRef.current.push(event.data);
           };
           mediaRecorderRef.current.start(1000);
+
+          if (videoRef.current) {
+            videoRef.current.srcObject = stream;
+          }
         });
     } else if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
-      mediaRecorderRef.current.onstop = () => {
-        const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
-        const audioUrl = URL.createObjectURL(audioBlob);
-        console.log('Audio File:', audioUrl);
-        if (audioBlob) {
-          printTranscript(audioBlob)
-          sendAudioPromptToPython(audioBlob)
+      mediaRecorderRef.current.onstop = async () => {
+        try {
+          // trigger snapshot after I stop recording to pass to backend and see image data to analyze
+          const imageDataURL = await captureSnapshot();
+          console.log('Captured Image Data URL:', imageDataURL);
+          sendImagePromptToPython(imageDataURL as string)
+  
+          // Process the audio recording
+          const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/mp4' });
+          const audioUrl = URL.createObjectURL(audioBlob);
+          console.log('Audio File:', audioUrl);
+          if (audioBlob) {
+            printTranscript(audioBlob);
+            sendAudioPromptToPython(audioBlob);
+          }
+          audioChunksRef.current = [];
+        } catch (error) {
+          console.error("Error capturing snapshot:", error);
         }
-        audioChunksRef.current = [];
       };
     }
   }, [isRecording]);
@@ -167,6 +199,10 @@ export default function Home() {
   const toggleRecording = () => {
     setIsRecording(!isRecording);
   };
+
+  /* const toggleVideo = () => {
+    setIsVideo(!isVideo)
+  } */
 
   useEffect(() => {
     if (responseCounter > 0) {
@@ -195,31 +231,37 @@ export default function Home() {
   
 
   return (
-    <main className={`flex min-h-screen flex-col items-center justify-between p-24 bg-gray-100`}>
-      <h1 className='text-2xl font-semibold'>Personalized AI</h1>
-      {/* <button onClick={() => setIsPaused(!isPaused)}>
-        {isPaused ? "Resume Connection" : "Pause Connection"}
-      </button> */}
-      <div className="flex flex-col items-center justify-center w-full md:w-1/2">
-        <div ref={messagesEndRef} className={`w-full md:h-96 overflow-y-auto p-4 bg-white shadow rounded ${messages.length === 0 && `justify-center items-center text-center md:h-auto p-8`}`}>
-          {
-            messages.length === 0 
-              ?
-                <>
-                  <p className='font-bold text-lg pb-3'>Chat with your AI therapist!</p>
-                  <p>1. Click on &quot;Start Recording&quot; to talk with the AI.</p>
-                  <p>2. When you&apos;re done, click &quot;Stop Recording&quot; to wait for the AI&apos;s response.</p>
-                </>
-              :
-                messages.map((message, index) => renderMessage(message, index))
-          }
+    <>
+      <main className={`flex min-h-screen flex-col items-center justify-between p-24 bg-gray-100`}>
+        <h1 className='text-2xl font-semibold'>Personalized AI</h1>
+        <div className="flex flex-col items-center justify-center w-full md:w-1/2">
+          <div ref={messagesEndRef} className={`w-full md:h-96 border-2 border-black overflow-y-auto p-4 bg-white shadow rounded-lg ${messages.length === 0 && `justify-center items-center text-center md:h-auto p-8`}`}>
+            {
+              messages.length === 0 
+                ?
+                  <>
+                    <p className='font-bold text-lg pb-3'>Chat with your AI therapist!</p>
+                    <p>1. Click on &quot;Start Recording&quot; to talk with the AI.</p>
+                    <p>2. When you&apos;re done, click &quot;Stop Recording&quot; to wait for the AI&apos;s response.</p>
+                  </>
+                :
+                  messages.map((message, index) => renderMessage(message, index))
+            }
+          </div>
         </div>
+        {isLoadingResponse && <p className="text-lg">Generating response...</p>}
+        <button onClick={toggleRecording} className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white mt-4`}>
+          {isRecording ? "Stop Recording" : "Start Recording"}
+        </button>
+        {/* <button onClick={toggleVideo} className={`${!isVideo ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white mt-4`}>
+          {isVideo ? "Stop Video" : "Start Video"}
+        </button> */}
+      </main>
+      <div className='justify-center items-center flex flex-col pb-24'>
+        <video ref={videoRef} autoPlay style={{ width: '400px', height: '300px' }}></video>
+        <button onClick={captureSnapshot} className='bg-green-400 p-4 w-1/8 rounded-lg'>Capture Snapshot</button>
       </div>
-      {isLoadingResponse && <p className="text-lg">Generating response...</p>}
-      <button onClick={toggleRecording} className={`${!isRecording ? "bg-green-600" : "bg-red-600"} px-5 py-3 rounded-lg text-white mt-4`}>
-        {isRecording ? "Stop Recording" : "Start Recording"}
-      </button>
-    </main>
+    </>
   );
 }
 

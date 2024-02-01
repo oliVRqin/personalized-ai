@@ -1,3 +1,4 @@
+import requests
 from flask import Flask, request, send_file
 from flask_cors import CORS
 from openai import OpenAI
@@ -52,6 +53,43 @@ def printTranscript():
         return transcript_text
     else:
         return 'Failed to transcribe audio', 500
+    
+@app.route('/analyze-image', methods=['POST'])
+def analyzeImage():
+    data_url = request.data.decode('utf-8')
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
+        payload = {
+            "model": "gpt-4-vision-preview",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "How many fingers am i holding up?"
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"{data_url}"
+                            }
+                        }
+                    ]
+                }
+            ],
+            "max_tokens": 300
+        }
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        result = response.json()
+    except Exception as e:
+        print("An error occurred:", e)
+        traceback.print_exc()
+        return 'Failed to transcribe audio', 500
+    return result["choices"][0]["message"]["content"]
     
 @app.route('/chat', methods=['POST'])
 def chat():
