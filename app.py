@@ -66,11 +66,15 @@ def analyzeImage():
             "model": "gpt-4-vision-preview",
             "messages": [
                 {
+                    "role": "system", 
+                    "content": "You respond strictly with the following format template: Hmm, the subject seems to look like they're displaying <mood>"
+                },
+                {
                     "role": "user",
                     "content": [
                         {
                             "type": "text",
-                            "text": "How many fingers am i holding up?"
+                            "text": "Analyze the image and determine what mood I'm displaying in one word from these choices: happiness, surprise, contempt, sadness, fear, disgust, despair, and anger."
                         },
                         {
                             "type": "image_url",
@@ -118,7 +122,7 @@ def chat():
         };
 
         response = client.chat.completions.create(
-            model="gpt-3.5-turbo",
+            model="gpt-3.5-turbo-0125",
             messages=[systemPrompt, userPrompt]
         )
 
