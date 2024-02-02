@@ -139,7 +139,7 @@ export default function Home() {
 
   useEffect(() => {
     if (isRecording) {
-      navigator.mediaDevices.getUserMedia({ audio: true, video: true })
+      navigator.mediaDevices.getUserMedia({ audio: true })
         .then(stream => {
           mediaRecorderRef.current = new MediaRecorder(stream);
           mediaRecorderRef.current.ondataavailable = (event) => {
