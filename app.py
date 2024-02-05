@@ -18,25 +18,28 @@ CORS(app)
 audio_file_path = 'output.mp4'
 
 def transcribe_audio(file_storage):
+    print("Transcribe audio: Starting transcription process.")
     temp_dir = tempfile.mkdtemp()
     temp_file_path = os.path.join(temp_dir, file_storage.filename)
     file_storage.save(temp_file_path)
 
-    transcript = None
     try:
         with open(temp_file_path, "rb") as audio_file:
+            print(f"Transcribe audio: File {file_storage.filename} saved, starting OpenAI transcription.")
             transcript = client.audio.transcriptions.create(
                 model="whisper-1", 
                 file=audio_file
             )
+            print("Transcribe audio: Transcription completed successfully.")
     except Exception as e:
-        print("An error occurred:", e)
-        traceback.print_exc()
+        print(f"Transcribe audio: An error occurred during transcription: {e}")
     finally:
-        # Clean up the temporary file
+        # Ensure cleanup is always attempted and log the attempt
+        print(f"Transcribe audio: Cleaning up temporary files for {file_storage.filename}.")
         os.remove(temp_file_path)
         os.rmdir(temp_dir)
     return transcript.text if transcript else None
+
 
 
 @app.route('/print-transcript', methods=['POST'])
@@ -93,7 +96,12 @@ def analyzeImage():
         print("An error occurred:", e)
         traceback.print_exc()
         return 'Failed to transcribe audio', 500
-    return result["choices"][0]["message"]["content"]
+    try:
+        # Processing code
+        return result["choices"][0]["message"]["content"]
+    except Exception as e:
+        print("An error occurred:", e)
+        return 'Failed to process image', 500
     
 @app.route('/chat', methods=['POST'])
 def chat():
@@ -147,6 +155,7 @@ def chat():
         traceback.print_exc()
         return 'Failed to transcribe audio', 500
     finally:
+        print("Cleaning up temporary files.")
         # Clean up the temporary file
         os.remove(temp_file_path)
         os.rmdir(temp_dir)

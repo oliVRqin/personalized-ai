@@ -21,6 +21,7 @@ export default function Home() {
         ctx?.drawImage(videoRef.current, 0, 0, canvas.width, canvas.height);
         try {
           const dataURL = canvas.toDataURL('image/jpeg');
+          console.log("Snapshot captured successfully.");
           resolve(dataURL); 
           // Turns off just the audio from the webcam
           const stream = videoRef.current.srcObject as MediaStream;
@@ -31,6 +32,7 @@ export default function Home() {
             }
           });
         } catch (error) {
+          console.error("Error capturing snapshot:", error);
           reject(error);
         }
       } else {
@@ -64,6 +66,8 @@ export default function Home() {
 
   // Helper function to create FormData
   const createAudioFormData = (audioBlob: any, fileName: any) => {
+    console.log("createAudioFormData audioBlob: ", audioBlob)
+    console.log("createAudioFormData fileName: ", fileName)
     const formData = new FormData();
     formData.append('file', new File([audioBlob], fileName, { type: "audio/mp4" }));
     return formData;
@@ -76,10 +80,12 @@ export default function Home() {
   const printTranscript = async (audioBlob: any) => {
     const formData = createAudioFormData(audioBlob, "audio-example-printTranscript.mp4");
     try {
+      console.log("Sending request to /print-transcript");
       const response = await fetch(`${process.env.NEXT_PUBLIC_DEV_ENDPOINT_URL}/print-transcript`, {
           method: 'POST',
           body: formData
       });
+      console.log("Received response from /print-transcript");
       if (!response.ok) {
           throw new Error('Network response was not ok');
       }
@@ -160,6 +166,8 @@ export default function Home() {
           /* if (videoRef.current) {
             videoRef.current.srcObject = stream;
           } */
+        }).catch(error => {
+          console.error("getUserMedia error:", error);
         });
     } else if (mediaRecorderRef.current) {
       mediaRecorderRef.current.stop();
